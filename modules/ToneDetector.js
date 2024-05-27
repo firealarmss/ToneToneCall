@@ -2,6 +2,7 @@ const FFT = require('fft-js').fft;
 const FFTUtils = require('fft-js').util;
 const { mean, std } = require('mathjs');
 
+const TplinkKasa = require('./TplinkKasa');
 const Watchdog = require('./Watchdog');
 const db = require('../models');
 
@@ -110,6 +111,12 @@ class ToneDetector {
         try {
             const frequencyThreshold = 15; // Hz dang it
 
+            const kasa = new TplinkKasa();
+            const deviceIp = '192.168.1.170'; // TODO: Move to DB
+            //await kasa.addDeviceByIp(deviceIp);
+
+            //await this.testKasa(kasa, deviceIp, false, true);
+
             const departments = await db.Department.findAll();
             for (const department of departments) {
                 if (Math.abs(department.toneA - toneA) <= frequencyThreshold && Math.abs(department.toneB - toneB) <= frequencyThreshold) {
@@ -127,6 +134,33 @@ class ToneDetector {
 
     sendAlert(user) {
         console.log(`Alerting user: ${user.name}, Email: ${user.email}, Phone: ${user.phoneNumber}`);
+    }
+
+    async testKasa(kasa, deviceIp, flash, backon) {
+        const status = await kasa.getDeviceStatus(deviceIp);
+        console.log('Device status:', status);
+
+        let interval;
+
+        await kasa.turnDeviceOn(deviceIp);
+
+        if (flash) {
+            interval = setInterval(async () => {
+                await kasa.turnDeviceOff(deviceIp);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                await kasa.turnDeviceOn(deviceIp);
+            }, 1000);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        clearInterval(interval);
+
+        if (!backon) {
+            await kasa.turnDeviceOff(deviceIp);
+        } else {
+            await kasa.turnDeviceOn(deviceIp);
+        }
     }
 
     stop() {
