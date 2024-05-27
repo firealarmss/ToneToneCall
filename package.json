@@ -20,9 +20,7 @@
     "js-yaml": "^4.1.0",
     "jsonwebtoken": "^9.0.2",
     "mathjs": "^12.4.2",
-    "mic": "^2.1.2",
     "node-record-lpcm16": "^1.0.1",
-    "pitchy": "^2.0.3",
     "sequelize": "^6.37.3",
     "sqlite3": "^5.1.7",
     "tplink-smarthome-api": "^5.0.0"
