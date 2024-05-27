@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../../models');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const TplinkKasa = require("../TplinkKasa");
 
 const SECRET_KEY = 'your-secret-key';
 
@@ -35,7 +36,7 @@ const requireAdmin = (req, res, next) => {
     next();
 };
 
-router.get('/', authenticateJWT, (req, res) => {
+router.get('/', (req, res) => {
     res.render('index', { user: req.user, title: 'Home' });
 });
 
@@ -83,7 +84,8 @@ router.post('/login', async (req, res) => {
         console.log('Password is valid');
         const token = jwt.sign({ userId: user.id, role: user.role }, SECRET_KEY, { expiresIn: '1h' });
         res.cookie('token', token);
-        res.json({ token });
+        res.redirect('/');
+        //res.json({ token });
     } catch (error) {
         console.error('Error during login:', error);
         res.status(400).json({ error: error.message });
@@ -94,6 +96,7 @@ router.get('/logout', (req, res) => {
     res.clearCookie('token');
     res.redirect('/');
 });
+
 
 router.get('/departments', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
     try {
@@ -117,11 +120,15 @@ router.post('/departments', authenticateJWT, requireAuth, requireAdmin, async (r
 router.get('/departments/:id', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
     try {
         const department = await db.Department.findByPk(req.params.id, {
-            include: db.User
+            include: [
+                { model: db.User },
+                { model: db.SmartDevice, as: 'SmartDevices' }
+            ]
         });
         if (!department) {
             return res.status(404).json({ error: 'Department not found' });
         }
+
         res.render('department', { user: req.user, department, title: department.name });
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -141,6 +148,22 @@ router.post('/departments/:id/users', authenticateJWT, requireAuth, requireAdmin
         }
         await department.addUser(user);
         res.redirect(`/departments/${req.params.id}`);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.post('/departments/:id/webhooks', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const { webhookUrl, discordWebhookUrl } = req.body;
+        const department = await db.Department.findByPk(req.params.id);
+        if (!department) {
+            return res.status(404).json({ error: 'Department not found' });
+        }
+        department.webhookUrl = webhookUrl;
+        department.discordWebhookUrl = discordWebhookUrl;
+        await department.save();
+        res.redirect(`/departments/${department.id}`);
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
@@ -184,5 +207,87 @@ router.post('/users/:id/delete', authenticateJWT, requireAuth, requireAdmin, asy
     }
 });
 
+router.post('/departments/:id/devices', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const { brand, ip, active } = req.body;
+        const department = await db.Department.findByPk(req.params.id);
+        if (!department) {
+            return res.status(404).json({ error: 'Department not found' });
+        }
+        const device = await db.SmartDevice.create({
+            brand,
+            ip,
+            active: active === 'on',
+            departmentId: department.id
+        });
+        res.redirect(`/departments/${department.id}`);
+    } catch (error) {
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            res.status(400).json({ error: 'The IP address must be unique.' });
+        } else {
+            console.error('Error creating smart device:', error);
+            res.status(400).json({ error: error.message });
+        }
+    }
+});
+
+router.post('/devices/:id/toggle', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const deviceId = req.params.id;
+        const device = await db.SmartDevice.findByPk(deviceId);
+
+        if (!device) {
+            console.error(`Device with ID ${deviceId} not found.`);
+            return res.status(404).json({ error: 'Device not found' });
+        }
+
+        console.log(`Device found: ${device.id}, IP: ${device.ip}, Active: ${device.active}`);
+
+        const kasa = new TplinkKasa();
+        await kasa.addDeviceByIp(device.ip);
+
+        if (device.active) {
+            await kasa.turnDeviceOff(device.ip);
+        } else {
+            await kasa.turnDeviceOn(device.ip);
+        }
+
+        device.active = !device.active;
+        await device.save();
+
+        res.redirect(`/departments/${device.departmentId}`);
+    } catch (error) {
+        console.error('Error toggling device:', error);
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.post('/devices/:id/delete', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const device = await db.SmartDevice.findByPk(req.params.id);
+        if (!device) {
+            return res.status(404).json({ error: 'Device not found' });
+        }
+        await device.destroy();
+        res.redirect(`/departments/${device.departmentId}`);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.post('/devices/:id/edit', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const { ip } = req.body;
+        const device = await db.SmartDevice.findByPk(req.params.id);
+        if (!device) {
+            return res.status(404).json({ error: 'Device not found' });
+        }
+        device.ip = ip;
+        await device.save();
+        res.redirect(`/departments/${device.departmentId}`);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
 
 module.exports = router;

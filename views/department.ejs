@@ -4,6 +4,7 @@
     <h1><%= department.name %></h1>
     <p>Tone A: <%= department.toneA %> Hz</p>
     <p>Tone B: <%= department.toneB %> Hz</p>
+
     <h2>Users</h2>
     <ul class="list-group">
         <% department.Users.forEach(user => { %>
@@ -18,6 +19,60 @@
             <input type="number" class="form-control" id="userId" name="userId" required>
         </div>
         <button type="submit" class="btn btn-primary">Add User</button>
+    </form>
+
+    <h2>Smart Devices</h2>
+    <ul class="list-group">
+        <% if (department.SmartDevices && department.SmartDevices.length > 0) { %>
+            <% department.SmartDevices.forEach(device => { %>
+                <li class="list-group-item">
+                    <%= device.brand %> - <%= device.ip %> - <%= device.active ? 'On' : 'Off' %>
+                    <form action="/devices/<%= device.id %>/toggle" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-secondary">Toggle</button>
+                    </form>
+                    <form action="/devices/<%= device.id %>/delete" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                    <form action="/devices/<%= device.id %>/edit" method="POST" style="display:inline;">
+                        <input type="text" name="ip" placeholder="New IP" required>
+                        <button type="submit" class="btn btn-primary">Update IP</button>
+                    </form>
+                </li>
+            <% }) %>
+        <% } else { %>
+            <li class="list-group-item">No smart devices found for this department.</li>
+        <% } %>
+    </ul>
+    <form action="/departments/<%= department.id %>/devices" method="POST">
+        <div class="form-group">
+            <label for="brand">Brand</label>
+            <input type="text" class="form-control" id="brand" name="brand" required>
+        </div>
+        <div class="form-group">
+            <label for="ip">IP Address</label>
+            <input type="text" class="form-control" id="ip" name="ip" required>
+        </div>
+        <div class="form-group">
+            <label for="active">Active</label>
+            <select class="form-control" id="active" name="active" required>
+                <option value="on">On</option>
+                <option value="off">Off</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Device</button>
+    </form>
+
+    <h2>Webhook Settings</h2>
+    <form action="/departments/<%= department.id %>/webhooks" method="POST">
+        <div class="form-group">
+            <label for="webhookUrl">Webhook URL</label>
+            <input type="text" class="form-control" id="webhookUrl" name="webhookUrl" value="<%= department.webhookUrl %>" required>
+        </div>
+        <div class="form-group">
+            <label for="discordWebhookUrl">Discord Webhook URL</label>
+            <input type="text" class="form-control" id="discordWebhookUrl" name="discordWebhookUrl" value="<%= department.discordWebhookUrl %>" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Update Webhooks</button>
     </form>
 </div>
 <%- include('partials/footer') %>

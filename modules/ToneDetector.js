@@ -5,6 +5,8 @@ const { mean, std } = require('mathjs');
 const TplinkKasa = require('./TplinkKasa');
 const Watchdog = require('./Watchdog');
 const db = require('../models');
+const DiscordWebhook = require("./DiscordWebhook");
+const {post} = require("axios");
 
 class ToneDetector {
     constructor(config) {
@@ -34,7 +36,7 @@ class ToneDetector {
 
         const loudness = 20.0 * Math.log10(Math.sqrt(data.reduce((sum, val) => sum + val ** 2, 0) / data.length) / 32768);
         if (loudness < this.config.squelch) {
-            console.log(`Signal below squelch level: ${loudness.toFixed(2)} dB`);
+            //console.log(`Signal below squelch level: ${loudness.toFixed(2)} dB`);
             return -1;
         }
 
@@ -111,19 +113,55 @@ class ToneDetector {
         try {
             const frequencyThreshold = 15; // Hz dang it
 
+
             const kasa = new TplinkKasa();
-            const deviceIp = '192.168.1.170'; // TODO: Move to DB
-            //await kasa.addDeviceByIp(deviceIp);
 
-            //await this.testKasa(kasa, deviceIp, false, true);
+            const departments = await db.Department.findAll({
+                include: [
+                    { model: db.User },
+                    { model: db.SmartDevice, as: 'SmartDevices' }
+                ]
+            });
 
-            const departments = await db.Department.findAll();
             for (const department of departments) {
                 if (Math.abs(department.toneA - toneA) <= frequencyThreshold && Math.abs(department.toneB - toneB) <= frequencyThreshold) {
                     console.log(`Alerting department: ${department.name}`);
-                    for (const user of await department.getUsers()) {
+
+                    //TODO: Finish this
+/*                    if (department.webhookUrl) {
+                        await post(department.webhookUrl, {
+                            message: 'QC2 CALL ALERT',
+                            toneA,
+                            toneB,
+                            department: department.name
+                        });
+                        console.log(`Notification sent to ${department.webhookUrl}`);
+                    } else {
+                        console.log(`Department ${department.name} has no webhook URL set.`);
+                    }*/
+
+                    if (department.discordWebhookUrl) {
+                        const discordWebhook = new DiscordWebhook(department.discordWebhookUrl);
+                        const toneAMessage = toneA.toFixed(1);
+                        const toneBMessage = toneB.toFixed(1);
+                        await discordWebhook.sendMessage(`QC2 CALL ALERT: Tone A: ${toneAMessage} Hz, Tone B: ${toneBMessage} Hz, Department: ${department.name}`);
+                        console.log(`Discord notification sent to ${department.discordWebhookUrl}`);
+                    } else {
+                        console.log(`Department ${department.name} has no Discord webhook URL set.`);
+                    }
+
+
+                    for (const user of department.Users) {
                         this.sendAlert(user);
                     }
+
+                    for (const device of department.SmartDevices) {
+                        if (device.brand === 'KASA') {
+                            await kasa.addDeviceByIp(device.ip);
+                            await kasa.turnDeviceOn(device.ip);
+                        }
+                    }
+
                     break;
                 }
             }
