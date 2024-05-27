@@ -1,5 +1,10 @@
 sampleRate: 44100
 
+webUI:
+  enabled: true
+  port: 3000
+  address: 0.0.0.0
+
 toneDetection:
   sampleRate: 44100
   numTones: 2

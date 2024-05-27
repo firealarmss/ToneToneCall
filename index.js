@@ -11,7 +11,6 @@ const program = new Command();
 
 program
     .option('-c, --config <path>', 'set config path', './config.yml')
-    .option('-p, --port <port>', 'set port', 3000)
     .parse(process.argv);
 
 program.parse(process.argv);
@@ -19,7 +18,6 @@ program.parse(process.argv);
 const options = program.opts();
 
 const configPath = options.config || './config.yml';
-const port = options.port;
 
 const config = loadConfig(configPath);
 
@@ -69,9 +67,14 @@ async function createDefaultAdminUser() {
 }
 
 db.sequelize.sync().then(async () => {
+    if (!config.webUI || !config.webUI.enabled) {
+        console.error('Web UI configuration not found or web UI disabled');
+        return;
+    }
+
     await createDefaultAdminUser();
-    app.listen(port, () => {
-        console.log(`Server is running on port ${port}`);
+    app.listen(config.webUI.port, config.webUI.address,() => {
+        console.log(`Server is running on ${config.webUI.address}:${config.webUI.port}`);
     });
 }).catch(err => {
     console.error('Unable to connect to the database:', err);
