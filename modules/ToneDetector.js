@@ -3,20 +3,26 @@ const FFTUtils = require('fft-js').util;
 const { mean, std } = require('mathjs');
 
 const TplinkKasa = require('./TplinkKasa');
+const TwilioSmsSender = require('./twilio/TwilioSmsSender');
 const Watchdog = require('./Watchdog');
 const db = require('../models');
 const DiscordWebhook = require("./DiscordWebhook");
 const {post} = require("axios");
 
 class ToneDetector {
-    constructor(config) {
+    constructor(config, twilioConfig) {
         this.config = config;
+        this.twilioEnabled = twilioConfig && twilioConfig.enabled;
         this.toneIndex = -1;
         this.lastFreq = 0.0;
         this.toneStartTime = null;
         this.freqBuffer = [];
         this.detectedFrequencies = new Array(this.config.numTones).fill(null);
         this.watchdog = new Watchdog(this.config.watchdogTimeout, () => this.resetState());
+
+        if (this.twilioEnabled) {
+            this.twilioSmsSender = new TwilioSmsSender(twilioConfig);
+        }
     }
 
     resetState() {
@@ -152,7 +158,7 @@ class ToneDetector {
 
 
                     for (const user of department.Users) {
-                        this.sendAlert(user);
+                        await this.sendAlert(user, toneA.toFixed(1), toneB.toFixed(1), department);
                     }
 
                     for (const device of department.SmartDevices) {
@@ -170,8 +176,15 @@ class ToneDetector {
         }
     }
 
-    sendAlert(user) {
-        console.log(`Alerting user: ${user.name}, Email: ${user.email}, Phone: ${user.phoneNumber}`);
+    async sendAlert(user, toneAMessage, toneBMessage, department) {
+        try {
+            console.log(`Alerting user: ${user.name}, Email: ${user.email}, Phone: ${user.phoneNumber}`);
+            if (this.twilioEnabled) {
+                await this.twilioSmsSender.sendSms(user.phoneNumber, `QC2 CALL ALERT: Tone A: ${toneAMessage} Hz, Tone B: ${toneBMessage} Hz, Department: ${department.name}`);
+            }
+        } catch (error) {
+            console.error('Error sending alert:', error);
+        }
     }
 
     async testKasa(kasa, deviceIp, flash, backon) {

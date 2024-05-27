@@ -5,6 +5,12 @@ webUI:
   port: 3000
   address: 0.0.0.0
 
+twilio:
+  enabled: false
+  accountSid: ''
+  authToken: ''
+  fromNumber: ''
+
 toneDetection:
   sampleRate: 44100
   numTones: 2
