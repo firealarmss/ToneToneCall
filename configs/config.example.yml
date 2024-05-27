@@ -1,0 +1,21 @@
+sampleRate: 44100
+
+toneDetection:
+  sampleRate: 44100
+  numTones: 2
+  minToneFrequencyDifference: 5.0
+  minToneLength: 0.600
+  maxToneFreqStdDeviation: 15.0
+  squelch: -70.0
+  minFrequencyThreshold: 300.0
+  watchdogTimeout: 5000
+
+recording:
+  sampleRate: 44100
+  channels: 1
+  threshold: 0.5
+  endOnSilence: false
+  silence: '1.0'
+  recorder: 'sox'
+  device: null
+  audioType: 'wav'

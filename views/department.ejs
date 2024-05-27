@@ -1,0 +1,23 @@
+<%- include('layouts/main', { title: department.name, user: user }) %>
+
+<div class="container">
+    <h1><%= department.name %></h1>
+    <p>Tone A: <%= department.toneA %> Hz</p>
+    <p>Tone B: <%= department.toneB %> Hz</p>
+    <h2>Users</h2>
+    <ul class="list-group">
+        <% department.Users.forEach(user => { %>
+            <li class="list-group-item">
+                <%= user.name %> - <%= user.email %> - <%= user.phoneNumber %>
+            </li>
+        <% }) %>
+    </ul>
+    <form action="/departments/<%= department.id %>/users" method="POST">
+        <div class="form-group">
+            <label for="userId">Add User by ID</label>
+            <input type="number" class="form-control" id="userId" name="userId" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Add User</button>
+    </form>
+</div>
+<%- include('partials/footer') %>

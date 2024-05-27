@@ -1,0 +1,29 @@
+<%- include('layouts/main', { title: 'Departments', user: user }) %>
+<div class="container">
+    <h1>Departments</h1>
+    <form action="/departments" method="POST">
+        <div class="form-group">
+            <label for="name">Department Name</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+        </div>
+        <div class="form-group">
+            <label for="toneA">Tone A</label>
+            <input type="number" class="form-control" id="toneA" name="toneA" required>
+        </div>
+        <div class="form-group">
+            <label for="toneB">Tone B</label>
+            <input type="number" class="form-control" id="toneB" name="toneB" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Department</button>
+    </form>
+    <hr>
+    <h2>Existing Departments</h2>
+    <ul class="list-group">
+        <% departments.forEach(department => { %>
+            <li class="list-group-item">
+                <a href="/departments/<%= department.id %>"><%= department.name %></a>
+            </li>
+        <% }) %>
+    </ul>
+</div>
+<%- include('partials/footer') %>

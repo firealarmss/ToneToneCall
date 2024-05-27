@@ -1,0 +1,23 @@
+<%- include('layouts/main', { title: 'Users', user: user }) %>
+
+<div class="container">
+    <h1>Users</h1>
+    <ul class="list-group">
+        <% users.forEach(user => { %>
+            <li class="list-group-item">
+                ID: <%= user.id %> - <%= user.name %> - <%= user.email %> - <%= user.phoneNumber %> - <%= user.role %>
+                <form action="/users/<%= user.id %>/role" method="POST" class="form-inline">
+                    <select name="role" class="form-control">
+                        <option value="user" <%= user.role === 'user' ? 'selected' : '' %>>User</option>
+                        <option value="admin" <%= user.role === 'admin' ? 'selected' : '' %>>Admin</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary">Change Role</button>
+                </form>
+                <form action="/users/<%= user.id %>/delete" method="POST" class="form-inline">
+                    <button type="submit" class="btn btn-danger">Delete User</button>
+                </form>
+            </li>
+        <% }) %>
+    </ul>
+</div>
+<%- include('partials/footer') %>
