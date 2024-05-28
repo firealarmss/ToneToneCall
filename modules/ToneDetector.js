@@ -8,11 +8,14 @@ const Watchdog = require('./Watchdog');
 const db = require('../models');
 const DiscordWebhook = require("./DiscordWebhook");
 const {post} = require("axios");
+const {SocketLabsClient} = require("@socketlabs/email");
+const Mailer = require("./socketlabs/Mailer");
 
 class ToneDetector {
-    constructor(config, twilioConfig) {
+    constructor(config, twilioConfig, socketLabsConfig) {
         this.config = config;
         this.twilioEnabled = twilioConfig && twilioConfig.enabled;
+        this.socketLabsEnabled = socketLabsConfig && socketLabsConfig.enabled;
         this.toneIndex = -1;
         this.lastFreq = 0.0;
         this.toneStartTime = null;
@@ -22,6 +25,10 @@ class ToneDetector {
 
         if (this.twilioEnabled) {
             this.twilioSmsSender = new TwilioSmsSender(twilioConfig);
+        }
+
+        if (this.socketLabsEnabled) {
+            this.mailer = new Mailer(socketLabsConfig);
         }
     }
 
@@ -179,8 +186,12 @@ class ToneDetector {
     async sendAlert(user, toneAMessage, toneBMessage, department) {
         try {
             console.log(`Alerting user: ${user.name}, Email: ${user.email}, Phone: ${user.phoneNumber}`);
-            if (this.twilioEnabled) {
+            if (this.twilioEnabled && this.twilioSmsSender) {
                 await this.twilioSmsSender.sendSms(user.phoneNumber, `QC2 CALL ALERT: Tone A: ${toneAMessage} Hz, Tone B: ${toneBMessage} Hz, Department: ${department.name}`);
+            }
+
+            if (this.socketLabsEnabled && this.mailer) {
+                await this.mailer.send('QC2 Call Alert', `QC2 CALL ALERT: Tone A: ${toneAMessage} Hz, Tone B: ${toneBMessage} Hz, Department: ${department.name}`, user.email);
             }
         } catch (error) {
             console.error('Error sending alert:', error);

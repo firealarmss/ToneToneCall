@@ -11,6 +11,13 @@ twilio:
   authToken: ''
   fromNumber: ''
 
+mailer:
+  fromEmail: "test@example.com"
+  socketLabs:
+    enabled: false
+    serverId: "123456"
+    injectionApi: "xxxxxxxxxxxxxxxxxx"
+
 toneDetection:
   sampleRate: 44100
   numTones: 2
