@@ -274,7 +274,9 @@ class ToneDetector {
             fileStream.on('finish', async () => {
                 console.log(`Audio recorded successfully: ${filePath}`);
                 for (const user of department.Users) {
-                    await this.twilioVoiceCall.makeVoiceCall(user.phoneNumber, ``, url);
+                    if (this.twilioEnabled && this.twilioVoiceCall) {
+                        await this.twilioVoiceCall.makeVoiceCall(user.phoneNumber, ``, url);
+                    }
                 }
             });
 
