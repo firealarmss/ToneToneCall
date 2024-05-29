@@ -97,7 +97,6 @@ router.get('/logout', (req, res) => {
     res.redirect('/');
 });
 
-
 router.get('/departments', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
     try {
         const departments = await db.Department.findAll();
@@ -130,13 +129,13 @@ router.get('/departments/:id', authenticateJWT, requireAuth, requireAdmin, async
         }
 
         const allUsers = await db.User.findAll();
+        const allDevices = await db.SmartDevice.findAll();
 
-        res.render('department', { user: req.user, department, allUsers, title: department.name });
+        res.render('department', { user: req.user, department, allUsers, allDevices, title: department.name });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
 });
-
 
 router.post('/departments/:id/users', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
     try {
@@ -189,6 +188,24 @@ router.post('/departments/:id/webhooks', authenticateJWT, requireAuth, requireAd
     }
 });
 
+router.post('/departments/:id/devices', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const { smartDeviceId } = req.body;
+        const department = await db.Department.findByPk(req.params.id);
+        if (!department) {
+            return res.status(404).json({ error: 'Department not found' });
+        }
+        const smartDevice = await db.SmartDevice.findByPk(smartDeviceId);
+        if (!smartDevice) {
+            return res.status(404).json({ error: 'Smart Device not found' });
+        }
+        await department.addSmartDevice(smartDevice);
+        res.redirect(`/departments/${req.params.id}`);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 router.get('/users', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
     try {
         const users = await db.User.findAll();
@@ -226,27 +243,26 @@ router.post('/users/:id/delete', authenticateJWT, requireAuth, requireAdmin, asy
     }
 });
 
-router.post('/departments/:id/devices', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
+router.get('/devices', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const devices = await db.SmartDevice.findAll();
+        res.render('devices', { user: req.user, devices, title: 'Smart Devices' });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.post('/devices', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
     try {
         const { brand, ip, active } = req.body;
-        const department = await db.Department.findByPk(req.params.id);
-        if (!department) {
-            return res.status(404).json({ error: 'Department not found' });
-        }
         const device = await db.SmartDevice.create({
             brand,
             ip,
-            active: active === 'on',
-            departmentId: department.id
+            active: active === 'on'
         });
-        res.redirect(`/departments/${department.id}`);
+        res.redirect('/devices');
     } catch (error) {
-        if (error.name === 'SequelizeUniqueConstraintError') {
-            res.status(400).json({ error: 'The IP address must be unique.' });
-        } else {
-            console.error('Error creating smart device:', error);
-            res.status(400).json({ error: error.message });
-        }
+        res.status(400).json({ error: error.message });
     }
 });
 
@@ -274,7 +290,7 @@ router.post('/devices/:id/toggle', authenticateJWT, requireAuth, requireAdmin, a
         device.active = !device.active;
         await device.save();
 
-        res.redirect(`/departments/${device.departmentId}`);
+        res.redirect('/devices');
     } catch (error) {
         console.error('Error toggling device:', error);
         res.status(400).json({ error: error.message });
@@ -288,7 +304,7 @@ router.post('/devices/:id/delete', authenticateJWT, requireAuth, requireAdmin, a
             return res.status(404).json({ error: 'Device not found' });
         }
         await device.destroy();
-        res.redirect(`/departments/${device.departmentId}`);
+        res.redirect('/devices');
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
@@ -303,7 +319,7 @@ router.post('/devices/:id/edit', authenticateJWT, requireAuth, requireAdmin, asy
         }
         device.ip = ip;
         await device.save();
-        res.redirect(`/departments/${device.departmentId}`);
+        res.redirect('/devices');
     } catch (error) {
         res.status(400).json({ error: error.message });
     }

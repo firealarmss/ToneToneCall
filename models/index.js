@@ -17,8 +17,9 @@ db.UserDepartment = require('./userDepartment')(sequelize, Sequelize);
 
 db.User.belongsToMany(db.Department, { through: db.UserDepartment });
 db.Department.belongsToMany(db.User, { through: db.UserDepartment });
-db.Department.hasMany(db.SmartDevice, { as: 'SmartDevices', foreignKey: 'departmentId' });
-db.SmartDevice.belongsTo(db.Department, { as: 'Department', foreignKey: 'departmentId' });
+
+db.Department.belongsToMany(db.SmartDevice, { through: 'DepartmentSmartDevices', as: 'SmartDevices' });
+db.SmartDevice.belongsToMany(db.Department, { through: 'DepartmentSmartDevices' });
 
 module.exports = db;
 

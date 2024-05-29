@@ -15,9 +15,5 @@ module.exports = (sequelize, DataTypes) => {
         }
     });
 
-    SmartDevice.associate = (models) => {
-        SmartDevice.belongsTo(models.Department, { foreignKey: 'departmentId', as: 'Department' });
-    };
-
     return SmartDevice;
 };

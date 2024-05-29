@@ -22,10 +22,5 @@ module.exports = (sequelize, DataTypes) => {
         }
     });
 
-    Department.associate = (models) => {
-        Department.hasMany(models.SmartDevice, { foreignKey: 'departmentId', as: 'SmartDevices' });
-        Department.belongsToMany(models.User, { through: models.UserDepartment });
-    };
-
     return Department;
 };
