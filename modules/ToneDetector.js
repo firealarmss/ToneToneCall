@@ -68,7 +68,10 @@ class ToneDetector {
             return -1;
         }
 
-        console.log(`Detected frequency: ${frequencies[index]} Hz, Max magnitude: ${maxMagnitude}`);
+        if (this.config.debug) {
+            console.log(`Detected frequency: ${frequencies[index]} Hz, Max magnitude: ${maxMagnitude}`);
+        }
+
         return frequencies[index];
     }
 
