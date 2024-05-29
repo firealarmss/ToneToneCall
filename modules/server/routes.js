@@ -11,9 +11,9 @@ const authenticateJWT = (req, res, next) => {
     const token = req.cookies.token;
     if (token) {
         jwt.verify(token, SECRET_KEY, (err, user) => {
-            if (err) {
+/*            if (err) {
                 return res.sendStatus(403);
-            }
+            }*/
             req.user = user;
             next();
         });
