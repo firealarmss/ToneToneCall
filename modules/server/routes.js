@@ -36,11 +36,11 @@ const requireAdmin = (req, res, next) => {
     next();
 };
 
-router.get('/', (req, res) => {
+router.get('/', authenticateJWT, (req, res) => {
     res.render('index', { user: req.user, title: 'Home' });
 });
 
-router.get('/register', (req, res) => {
+router.get('/register', authenticateJWT,(req, res) => {
     res.render('register', { user: req.user, title: 'Register' });
 });
 
@@ -56,7 +56,7 @@ router.post('/register', async (req, res) => {
     }
 });
 
-router.get('/login', (req, res) => {
+router.get('/login', authenticateJWT,(req, res) => {
     res.render('login', { user: req.user, title: 'Login' });
 });
 
@@ -70,9 +70,9 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ error: 'User not found' });
         }
 
-        console.log('User found:', user.email);
-        console.log('Entered password:', password);
-        console.log('Stored password:', user.password);
+        //console.log('User found:', user.email);
+        //console.log('Entered password:', password);
+        //console.log('Stored password:', user.password);
 
         const validPassword = await bcrypt.compare(password, user.password);
 
@@ -81,7 +81,7 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ error: 'Invalid password' });
         }
 
-        console.log('Password is valid');
+        //console.log('Password is valid');
         const token = jwt.sign({ userId: user.id, role: user.role }, SECRET_KEY, { expiresIn: '1h' });
         res.cookie('token', token);
         res.redirect('/');
@@ -129,11 +129,14 @@ router.get('/departments/:id', authenticateJWT, requireAuth, requireAdmin, async
             return res.status(404).json({ error: 'Department not found' });
         }
 
-        res.render('department', { user: req.user, department, title: department.name });
+        const allUsers = await db.User.findAll();
+
+        res.render('department', { user: req.user, department, allUsers, title: department.name });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
 });
+
 
 router.post('/departments/:id/users', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
     try {
@@ -147,6 +150,23 @@ router.post('/departments/:id/users', authenticateJWT, requireAuth, requireAdmin
             return res.status(404).json({ error: 'User not found' });
         }
         await department.addUser(user);
+        res.redirect(`/departments/${req.params.id}`);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.post('/departments/:id/users/:userId/delete', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const department = await db.Department.findByPk(req.params.id);
+        if (!department) {
+            return res.status(404).json({ error: 'Department not found' });
+        }
+        const user = await db.User.findByPk(req.params.userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        await department.removeUser(user);
         res.redirect(`/departments/${req.params.id}`);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -168,7 +188,6 @@ router.post('/departments/:id/webhooks', authenticateJWT, requireAuth, requireAd
         res.status(400).json({ error: error.message });
     }
 });
-
 
 router.get('/users', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
     try {

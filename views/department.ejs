@@ -10,13 +10,20 @@
         <% department.Users.forEach(user => { %>
             <li class="list-group-item">
                 <%= user.name %> - <%= user.email %> - <%= user.phoneNumber %>
+                <form action="/departments/<%= department.id %>/users/<%= user.id %>/delete" method="POST" style="display:inline;">
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
             </li>
         <% }) %>
     </ul>
     <form action="/departments/<%= department.id %>/users" method="POST">
         <div class="form-group">
-            <label for="userId">Add User by ID</label>
-            <input type="number" class="form-control" id="userId" name="userId" required>
+            <label for="userId">Add User</label>
+            <select class="form-control" id="userId" name="userId" required>
+                <% allUsers.forEach(user => { %>
+                    <option value="<%= user.id %>"><%= user.name %> (<%= user.email %>)</option>
+                <% }) %>
+            </select>
         </div>
         <button type="submit" class="btn btn-primary">Add User</button>
     </form>
