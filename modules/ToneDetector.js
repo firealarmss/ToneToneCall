@@ -163,7 +163,7 @@ class ToneDetector {
                         const discordWebhook = new DiscordWebhook(department.discordWebhookUrl);
                         const toneAMessage = toneA.toFixed(1);
                         const toneBMessage = toneB.toFixed(1);
-                        await discordWebhook.sendMessage(`QC2 CALL ALERT: Tone A: ${toneAMessage} Hz, Tone B: ${toneBMessage} Hz, Department: ${department.name}`);
+                        await discordWebhook.sendMessage(this.createAlertMessage(toneAMessage, toneBMessage, department));
                         console.log(`Discord notification sent to ${department.discordWebhookUrl}`);
                     } else {
                         console.log(`Department ${department.name} has no Discord webhook URL set.`);
@@ -196,15 +196,19 @@ class ToneDetector {
         try {
             console.log(`Alerting user: ${user.name}, Email: ${user.email}, Phone: ${user.phoneNumber}`);
             if (this.twilioEnabled && this.twilioSmsSender) {
-                await this.twilioSmsSender.sendSms(user.phoneNumber, `QC2 CALL ALERT: Tone A: ${toneAMessage} Hz, Tone B: ${toneBMessage} Hz, Department: ${department.name}`);
+                await this.twilioSmsSender.sendSms(user.phoneNumber, this.createAlertMessage(toneAMessage, toneBMessage, department));
             }
 
             if (this.socketLabsEnabled && this.mailer) {
-                await this.mailer.send('QC2 Call Alert', `QC2 CALL ALERT: Tone A: ${toneAMessage} Hz, Tone B: ${toneBMessage} Hz, Department: ${department.name}`, user.email);
+                await this.mailer.send('QC2 Call Alert', this.createAlertMessage(toneAMessage, toneBMessage, department), user.email);
             }
         } catch (error) {
             console.error('Error sending alert:', error);
         }
+    }
+
+    createAlertMessage(toneAMessage, toneBMessage, department) {
+        return `QC2 CALL ALERT: Tone A: ${toneAMessage} Hz, Tone B: ${toneBMessage} Hz, Department: ${department.name}`;
     }
 
     // TODO: Remove after testing
