@@ -24,6 +24,7 @@
     "mathjs": "^12.4.2",
     "node-record-lpcm16": "^1.0.1",
     "sequelize": "^6.37.3",
+    "socket.io": "^4.7.5",
     "sqlite3": "^5.1.7",
     "tplink-smarthome-api": "^5.0.0",
     "twilio": "^5.1.0"

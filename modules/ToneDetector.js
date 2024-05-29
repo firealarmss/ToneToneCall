@@ -64,7 +64,7 @@ class ToneDetector {
             return -1;
         }
 
-        //console.log(`Detected frequency: ${frequencies[index]} Hz, Max magnitude: ${maxMagnitude}`);
+        console.log(`Detected frequency: ${frequencies[index]} Hz, Max magnitude: ${maxMagnitude}`);
         return frequencies[index];
     }
 
@@ -117,7 +117,7 @@ class ToneDetector {
                 this.resetState();
             }
         } catch (error) {
-            console.error('Error processing audio data:', error);
+            console.error('Error processing audio data');
             this.resetState();
         }
     }
@@ -125,7 +125,6 @@ class ToneDetector {
     async alertDepartment(toneA, toneB) {
         try {
             const frequencyThreshold = 15; // Hz dang it
-
 
             const kasa = new TplinkKasa();
 
@@ -163,7 +162,6 @@ class ToneDetector {
                         console.log(`Department ${department.name} has no Discord webhook URL set.`);
                     }
 
-
                     for (const user of department.Users) {
                         await this.sendAlert(user, toneA.toFixed(1), toneB.toFixed(1), department);
                     }
@@ -172,6 +170,10 @@ class ToneDetector {
                         if (device.brand === 'KASA') {
                             await kasa.addDeviceByIp(device.ip);
                             await kasa.turnDeviceOn(device.ip);
+
+                            setTimeout(async () => {
+                                await kasa.turnDeviceOff(device.ip);
+                            }, this.config.smartTimeOut);
                         }
                     }
 
@@ -198,6 +200,7 @@ class ToneDetector {
         }
     }
 
+    // TODO: Remove after testing
     async testKasa(kasa, deviceIp, flash, backon) {
         const status = await kasa.getDeviceStatus(deviceIp);
         console.log('Device status:', status);
