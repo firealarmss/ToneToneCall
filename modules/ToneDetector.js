@@ -49,7 +49,9 @@ class ToneDetector {
 
         const loudness = 20.0 * Math.log10(Math.sqrt(data.reduce((sum, val) => sum + val ** 2, 0) / data.length) / 32768);
         if (loudness < this.config.squelch) {
-            //console.log(`Signal below squelch level: ${loudness.toFixed(2)} dB`);
+            if (this.config.debug) {
+                console.log(`Signal below squelch level: ${loudness.toFixed(2)} dB`);
+            }
             return -1;
         }
 
@@ -60,7 +62,9 @@ class ToneDetector {
         const index = magnitudes.indexOf(maxMagnitude);
 
         if (index === -1 || frequencies[index] === undefined || frequencies[index] < this.config.minFrequencyThreshold) {
-            //console.log(`Invalid frequency detected. Max magnitude: ${maxMagnitude}, Index: ${index}, Frequency: ${frequencies[index]}`);
+            if (this.config.debug) {
+                console.log(`Invalid frequency detected. Max magnitude: ${maxMagnitude}, Index: ${index}, Frequency: ${frequencies[index]}`);
+            }
             return -1;
         }
 
