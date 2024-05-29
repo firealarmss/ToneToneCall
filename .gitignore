@@ -10,6 +10,9 @@ uploads
 configs/*
 !configs/config.example.yml
 
+recordings/*
+!recordings/.gitkeep
+
 *.sqlite
 
 # local env files

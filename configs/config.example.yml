@@ -10,6 +10,7 @@ twilio:
   accountSid: ''
   authToken: ''
   fromNumber: ''
+  recordingAddress: "http://example.com:3000"
 
 mailer:
   fromEmail: "test@example.com"
@@ -28,6 +29,7 @@ toneDetection:
   minFrequencyThreshold: 300.0
   watchdogTimeout: 5000
   smartTimeOut: 5000
+  recordingDuration: 10
   debug: false
 
 recording:

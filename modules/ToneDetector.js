@@ -1,6 +1,10 @@
 const FFT = require('fft-js').fft;
 const FFTUtils = require('fft-js').util;
 const { mean, std } = require('mathjs');
+const fs = require('fs');
+const path = require("path");
+const { exec, spawn } = require('child_process');
+const recorder = require('node-record-lpcm16');
 
 const TplinkKasa = require('./TplinkKasa');
 const TwilioSmsSender = require('./twilio/TwilioSmsSender');
@@ -10,10 +14,13 @@ const DiscordWebhook = require("./DiscordWebhook");
 const {post} = require("axios");
 const {SocketLabsClient} = require("@socketlabs/email");
 const Mailer = require("./socketlabs/Mailer");
+const TwilioVoiceCall = require("./twilio/TwilioVoiceCall");
 
 class ToneDetector {
-    constructor(config, twilioConfig, socketLabsConfig) {
+    constructor(config, recorderConfig, twilioConfig, socketLabsConfig) {
         this.config = config;
+        this.twilioConfig = twilioConfig;
+        this.recorderConfig = recorderConfig;
         this.twilioEnabled = twilioConfig && twilioConfig.enabled;
         this.socketLabsEnabled = socketLabsConfig && socketLabsConfig.enabled;
         this.toneIndex = -1;
@@ -25,6 +32,7 @@ class ToneDetector {
 
         if (this.twilioEnabled) {
             this.twilioSmsSender = new TwilioSmsSender(twilioConfig);
+            this.twilioVoiceCall = new TwilioVoiceCall(twilioConfig);
         }
 
         if (this.socketLabsEnabled) {
@@ -78,10 +86,16 @@ class ToneDetector {
     async processAudioData(data) {
         try {
             const audioData = Array.from(new Int16Array(data.buffer));
-            const frequency = this.schmittTrigger(audioData);
 
             if (!audioData || audioData.length === 0) {
-                console.log('No frequency detected or audio data empty?');
+                console.log('No audio data received or data length is 0?');
+                return;
+            }
+
+            const frequency = this.schmittTrigger(audioData);
+
+            if (!frequency) {
+                console.log('No frequency detected?');
                 return;
             }
 
@@ -144,33 +158,37 @@ class ToneDetector {
 
             for (const department of departments) {
                 if (Math.abs(department.toneA - toneA) <= frequencyThreshold && Math.abs(department.toneB - toneB) <= frequencyThreshold) {
+                    const now = Date.now();
+                    const url = `${this.twilioConfig.recordingAddress}/${encodeURIComponent(path.basename(department.name + "_" + now))}.wav`;
+                    const filePath = path.join(__dirname, `../recordings/${department.name}_${now}.wav`);
+
                     console.log(`Alerting department: ${department.name}`);
 
                     //TODO: Finish this
-/*                    if (department.webhookUrl) {
-                        await post(department.webhookUrl, {
-                            message: 'QC2 CALL ALERT',
-                            toneA,
-                            toneB,
-                            department: department.name
-                        });
-                        console.log(`Notification sent to ${department.webhookUrl}`);
-                    } else {
-                        console.log(`Department ${department.name} has no webhook URL set.`);
-                    }*/
+                    /*                    if (department.webhookUrl) {
+                                            await post(department.webhookUrl, {
+                                                message: 'QC2 CALL ALERT',
+                                                toneA,
+                                                toneB,
+                                                department: department.name
+                                            });
+                                            console.log(`Notification sent to ${department.webhookUrl}`);
+                                        } else {
+                                            console.log(`Department ${department.name} has no webhook URL set.`);
+                                        }*/
 
                     if (department.discordWebhookUrl) {
                         const discordWebhook = new DiscordWebhook(department.discordWebhookUrl);
                         const toneAMessage = toneA.toFixed(1);
                         const toneBMessage = toneB.toFixed(1);
-                        await discordWebhook.sendMessage(this.createAlertMessage(toneAMessage, toneBMessage, department));
+                        await discordWebhook.sendMessage(this.createAlertMessage(toneAMessage, toneBMessage, department, url));
                         console.log(`Discord notification sent to ${department.discordWebhookUrl}`);
                     } else {
                         console.log(`Department ${department.name} has no Discord webhook URL set.`);
                     }
 
                     for (const user of department.Users) {
-                        await this.sendAlert(user, toneA.toFixed(1), toneB.toFixed(1), department);
+                        await this.sendAlert(user, toneA.toFixed(1), toneB.toFixed(1), department, url);
                     }
 
                     for (const device of department.SmartDevices) {
@@ -184,6 +202,8 @@ class ToneDetector {
                         }
                     }
 
+                    this.startRecordingAndCallUsers(department, now, filePath);
+
                     break;
                 }
             }
@@ -192,23 +212,79 @@ class ToneDetector {
         }
     }
 
-    async sendAlert(user, toneAMessage, toneBMessage, department) {
+    async sendAlert(user, toneAMessage, toneBMessage, department, url) {
         try {
             console.log(`Alerting user: ${user.name}, Email: ${user.email}, Phone: ${user.phoneNumber}`);
             if (this.twilioEnabled && this.twilioSmsSender) {
-                await this.twilioSmsSender.sendSms(user.phoneNumber, this.createAlertMessage(toneAMessage, toneBMessage, department));
+                await this.twilioSmsSender.sendSms(user.phoneNumber, this.createAlertMessage(toneAMessage, toneBMessage, department, url));
             }
 
             if (this.socketLabsEnabled && this.mailer) {
-                await this.mailer.send('QC2 Call Alert', this.createAlertMessage(toneAMessage, toneBMessage, department), user.email);
+                await this.mailer.send('QC2 Call Alert', this.createAlertMessage(toneAMessage, toneBMessage, department, url), user.email);
             }
         } catch (error) {
             console.error('Error sending alert:', error);
         }
     }
 
-    createAlertMessage(toneAMessage, toneBMessage, department) {
-        return `QC2 CALL ALERT: Tone A: ${toneAMessage} Hz, Tone B: ${toneBMessage} Hz, Department: ${department.name}`;
+    createAlertMessage(toneAMessage, toneBMessage, department, url) {
+        let urlMsg;
+
+        if (url) {
+            urlMsg = `, Recording: ${url}`;
+        }
+
+        return `QC2 CALL ALERT: Tone A: ${toneAMessage} Hz, Tone B: ${toneBMessage} Hz, Department: ${department.name}${urlMsg}`;
+    }
+
+    async startRecordingAndCallUsers(department, now, filePath) {
+        const duration = this.config.recordingDuration * 1000;
+
+        const url = `${department.name}_${now}.wav`;
+
+        if (!this.recorderConfig.recorder) {
+            console.error('Recorder configuration is missing.');
+            return;
+        }
+
+        try {
+            const fileStream = fs.createWriteStream(filePath, { encoding: 'binary' });
+            const recording = recorder.record({
+                sampleRate: this.recorderConfig.sampleRate,
+                channels: this.recorderConfig.channels,
+                threshold: this.recorderConfig.threshold,
+                endOnSilence: this.recorderConfig.endOnSilence,
+                silence: this.recorderConfig.silence,
+                recorder: this.recorderConfig.recorder,
+                device: this.recorderConfig.device,
+                audioType: this.recorderConfig.audioType
+            });
+
+            const timeout = setTimeout(() => {
+                recording.stop();
+            }, duration);
+
+            recording.stream().pipe(fileStream);
+
+            recording.stream().on('error', (err) => {
+                //console.error('Recorder stream error:', err);
+                clearTimeout(timeout);
+            });
+
+            fileStream.on('finish', async () => {
+                console.log(`Audio recorded successfully: ${filePath}`);
+                for (const user of department.Users) {
+                    await this.twilioVoiceCall.makeVoiceCall(user.phoneNumber, ``, url);
+                }
+            });
+
+            fileStream.on('error', (err) => {
+                console.error('Error writing audio file:', err);
+                clearTimeout(timeout);
+            });
+        } catch (error) {
+            console.error('Error recording audio:', error);
+        }
     }
 
     // TODO: Remove after testing

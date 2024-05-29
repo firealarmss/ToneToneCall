@@ -21,7 +21,7 @@ const configPath = options.config || './config.yml';
 
 const config = loadConfig(configPath);
 
-const toneDetector = new ToneDetector(config.toneDetection, config.twilio, config.mailer.socketLabs);
+const toneDetector = new ToneDetector(config.toneDetection, config.recording, config.twilio, config.mailer.socketLabs);
 
 const recording = recorder.record({
     sampleRate: config.recording.sampleRate,

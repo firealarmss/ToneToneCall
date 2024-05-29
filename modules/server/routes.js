@@ -4,6 +4,8 @@ const db = require('../../models');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const TplinkKasa = require("../TplinkKasa");
+const path = require("path");
+const fs = require("fs");
 
 const SECRET_KEY = 'your-secret-key';
 
@@ -36,8 +38,44 @@ const requireAdmin = (req, res, next) => {
     next();
 };
 
+router.use('/recordings', express.static(path.join(__dirname, '../../recordings')));
+
 router.get('/', authenticateJWT, (req, res) => {
     res.render('index', { user: req.user, title: 'Home' });
+});
+
+router.get('/calls', async (req, res) => {
+    try {
+        const departments = await db.Department.findAll({
+            include: [{ model: db.SmartDevice, as: 'SmartDevices' }]
+        });
+
+        const recordingsDir = path.join(__dirname, '../../recordings');
+        const recordings = {};
+
+        departments.forEach(department => {
+            recordings[department.name] = [];
+        });
+
+        fs.readdirSync(recordingsDir).forEach(file => {
+            const fileNameParts = file.split('_');
+            if (fileNameParts.length < 2) return;
+
+            const departmentName = fileNameParts[0];
+            const timestamp = fileNameParts[1].split('.')[0];
+
+            if (recordings[departmentName]) {
+                recordings[departmentName].push({
+                    name: file,
+                    timestamp: new Date(parseInt(timestamp))
+                });
+            }
+        });
+
+        res.render('recordings', { departments: departments.map(d => d.name), recordings, user: req.user });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 router.get('/register', authenticateJWT,(req, res) => {
