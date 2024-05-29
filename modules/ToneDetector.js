@@ -159,7 +159,7 @@ class ToneDetector {
             for (const department of departments) {
                 if (Math.abs(department.toneA - toneA) <= frequencyThreshold && Math.abs(department.toneB - toneB) <= frequencyThreshold) {
                     const now = Date.now();
-                    const url = `${this.twilioConfig.recordingAddress}/${encodeURIComponent(path.basename(department.name + "_" + now))}.wav`;
+                    const url = `${this.twilioConfig.recordingAddress}/recordings/${encodeURIComponent(path.basename(department.name + "_" + now))}.wav`;
                     const filePath = path.join(__dirname, `../recordings/${department.name}_${now}.wav`);
 
                     console.log(`Alerting department: ${department.name}`);
