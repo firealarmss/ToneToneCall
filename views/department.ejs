@@ -1,9 +1,22 @@
 <%- include('layouts/main', { title: department.name, user: user }) %>
 
 <div class="container">
-    <h1><%= department.name %></h1>
-    <p>Tone A: <%= department.toneA %> Hz</p>
-    <p>Tone B: <%= department.toneB %> Hz</p>
+    <h1>Edit Department</h1>
+    <form action="/departments/<%= department.id %>/edit" method="POST">
+        <div class="form-group">
+            <label for="departmentName">Department Name</label>
+            <input type="text" class="form-control" id="departmentName" name="name" value="<%= department.name %>" required>
+        </div>
+        <div class="form-group">
+            <label for="toneA">Tone A (Hz)</label>
+            <input type="number" step="0.01" class="form-control" id="toneA" name="toneA" value="<%= department.toneA %>" required>
+        </div>
+        <div class="form-group">
+            <label for="toneB">Tone B (Hz)</label>
+            <input type="number" step="0.01" class="form-control" id="toneB" name="toneB" value="<%= department.toneB %>" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Update Department</button>
+    </form>
 
     <h2>Users</h2>
     <ul class="list-group">

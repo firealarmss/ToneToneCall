@@ -244,6 +244,23 @@ router.post('/departments/:id/devices', authenticateJWT, requireAuth, requireAdm
     }
 });
 
+router.post('/departments/:id/edit', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const { name, toneA, toneB } = req.body;
+        const department = await db.Department.findByPk(req.params.id);
+        if (!department) {
+            return res.status(404).json({ error: 'Department not found' });
+        }
+        department.name = name;
+        department.toneA = toneA;
+        department.toneB = toneB;
+        await department.save();
+        res.redirect(`/departments/${department.id}`);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 router.get('/users', authenticateJWT, requireAuth, requireAdmin, async (req, res) => {
     try {
         const users = await db.User.findAll();
