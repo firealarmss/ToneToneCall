@@ -44,7 +44,7 @@ router.get('/', authenticateJWT, (req, res) => {
     res.render('index', { user: req.user, title: 'Home' });
 });
 
-router.get('/calls', async (req, res) => {
+router.get('/calls', authenticateJWT, async (req, res) => {
     try {
         const departments = await db.Department.findAll({
             include: [{ model: db.SmartDevice, as: 'SmartDevices' }]
