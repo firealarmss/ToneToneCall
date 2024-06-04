@@ -165,24 +165,33 @@ class ToneDetector {
                     console.log(`Alerting department: ${department.name}`);
 
                     //TODO: Finish this
-                    /*                    if (department.webhookUrl) {
-                                            await post(department.webhookUrl, {
-                                                message: 'QC2 CALL ALERT',
-                                                toneA,
-                                                toneB,
-                                                department: department.name
-                                            });
-                                            console.log(`Notification sent to ${department.webhookUrl}`);
-                                        } else {
-                                            console.log(`Department ${department.name} has no webhook URL set.`);
-                                        }*/
+
+                    if (department.webhookUrl) {
+                        try {
+                            await post(department.webhookUrl, {
+                                message: 'QC2 CALL ALERT',
+                                toneA,
+                                toneB,
+                                department: department.name
+                            });
+                            console.log(`Notification sent to ${department.webhookUrl}`);
+                        } catch (error) {
+                            console.error('Error sending notification to external app:', error);
+                        }
+                    } else {
+                        console.log(`Department ${department.name} has no webhook URL set.`);
+                    }
 
                     if (department.discordWebhookUrl) {
-                        const discordWebhook = new DiscordWebhook(department.discordWebhookUrl);
-                        const toneAMessage = toneA.toFixed(1);
-                        const toneBMessage = toneB.toFixed(1);
-                        await discordWebhook.sendMessage(this.createAlertMessage(toneAMessage, toneBMessage, department, url));
-                        console.log(`Discord notification sent to ${department.discordWebhookUrl}`);
+                        try {
+                            const discordWebhook = new DiscordWebhook(department.discordWebhookUrl);
+                            const toneAMessage = toneA.toFixed(1);
+                            const toneBMessage = toneB.toFixed(1);
+                            await discordWebhook.sendMessage(this.createAlertMessage(toneAMessage, toneBMessage, department, url));
+                            console.log(`Discord notification sent to ${department.discordWebhookUrl}`);
+                        } catch (error) {
+                            console.error('Error sending Discord notification:', error);
+                        }
                     } else {
                         console.log(`Department ${department.name} has no Discord webhook URL set.`);
                     }
