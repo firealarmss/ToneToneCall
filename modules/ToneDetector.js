@@ -191,15 +191,19 @@ class ToneDetector {
                         await this.sendAlert(user, toneA.toFixed(1), toneB.toFixed(1), department, url);
                     }
 
-                    for (const device of department.SmartDevices) {
-                        if (device.brand === 'KASA') {
-                            await kasa.addDeviceByIp(device.ip);
-                            await kasa.turnDeviceOn(device.ip);
+                    try {
+                        for (const device of department.SmartDevices) {
+                            if (device.brand === 'KASA') {
+                                await kasa.addDeviceByIp(device.ip);
+                                await kasa.turnDeviceOn(device.ip);
 
-                            setTimeout(async () => {
-                                await kasa.turnDeviceOff(device.ip);
-                            }, this.config.smartTimeOut);
+                                setTimeout(async () => {
+                                    await kasa.turnDeviceOff(device.ip);
+                                }, this.config.smartTimeOut);
+                            }
                         }
+                    } catch (error) {
+                        console.error('Error activating smart devices:', error);
                     }
 
                     this.startRecordingAndCallUsers(department, now, filePath);
@@ -223,7 +227,7 @@ class ToneDetector {
                 await this.mailer.send('QC2 Call Alert', this.createAlertMessage(toneAMessage, toneBMessage, department, url), user.email);
             }
         } catch (error) {
-            console.error('Error sending alert:', error);
+            console.error('Error sending user alert:', error);
         }
     }
 
