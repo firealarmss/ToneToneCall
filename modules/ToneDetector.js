@@ -164,8 +164,6 @@ class ToneDetector {
 
                     console.log(`Alerting department: ${department.name}`);
 
-                    //TODO: Finish this
-
                     if (department.webhookUrl) {
                         try {
                             await post(department.webhookUrl, {
