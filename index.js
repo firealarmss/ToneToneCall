@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const ToneDetector = require('./modules/ToneDetector');
 const loadConfig = require('./modules/configLoader');
 const app = require('./modules/server/Server');
+const {asciiArt} = require("./modules/asciiArt");
 
 const program = new Command();
 
@@ -16,6 +17,10 @@ program
 program.parse(process.argv);
 
 const options = program.opts();
+
+asciiArt();
+
+console.log("                                     ToneToneCall Copyright 2024 Caleb, KO4UYJ");
 
 const configPath = options.config || './config.yml';
 
@@ -33,8 +38,6 @@ const recording = recorder.record({
     device: config.recording.device,
     audioType: config.recording.audioType
 });
-
-console.log(config.recording.device);
 
 recording.stream()
     .on('data', (data) => {
