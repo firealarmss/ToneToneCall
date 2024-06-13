@@ -20,6 +20,7 @@ mailer:
     injectionApi: "xxxxxxxxxxxxxxxxxx"
 
 toneDetection:
+  externalWebhookEnable: true
   sampleRate: 44100
   numTones: 2
   minToneFrequencyDifference: 5.0

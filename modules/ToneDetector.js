@@ -164,7 +164,7 @@ class ToneDetector {
 
                     console.log(`Alerting department: ${department.name}`);
 
-                    if (department.webhookUrl) {
+                    if (department.webhookUrl && this.config.externalWebhookEnable) {
                         try {
                             await post(department.webhookUrl, {
                                 message: 'QC2 CALL ALERT',
