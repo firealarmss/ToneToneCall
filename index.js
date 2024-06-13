@@ -18,13 +18,13 @@ program.parse(process.argv);
 
 const options = program.opts();
 
-asciiArt();
-
-console.log("                                     ToneToneCall Copyright 2024 Caleb, KO4UYJ");
-
 const configPath = options.config || './config.yml';
 
 const config = loadConfig(configPath);
+
+asciiArt(config);
+
+console.log("                                     ToneToneCall Copyright 2024 Caleb, KO4UYJ\n");
 
 const toneDetector = new ToneDetector(config.toneDetection, config.recording, config.twilio, config.mailer.socketLabs);
 
