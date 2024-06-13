@@ -145,7 +145,7 @@ class ToneDetector {
 
     async alertDepartment(toneA, toneB) {
         try {
-            const frequencyThreshold = 15; // Hz dang it
+            const frequencyThreshold = this.config.toneThreshold || 15;
 
             const kasa = new TplinkKasa();
 

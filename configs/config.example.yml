@@ -28,6 +28,7 @@ toneDetection:
   maxToneFreqStdDeviation: 15.0
   squelch: -50.0
   minFrequencyThreshold: 300.0
+  toneThreshold: 15
   watchdogTimeout: 5000
   smartTimeOut: 5000
   recordingDuration: 10
