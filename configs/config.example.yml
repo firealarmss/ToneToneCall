@@ -18,6 +18,7 @@ mailer:
     enabled: false
     serverId: "123456"
     injectionApi: "xxxxxxxxxxxxxxxxxx"
+    fromEmail: "test@example.com"
 
 toneDetection:
   externalWebhookEnable: true

@@ -31,9 +31,9 @@ function asciiArt(config) {
 
     if (config.mailer) {
         console.log("Mailer:");
-        console.log(`   From Email: ${config.mailer.fromEmail}`);
         if (config.mailer.socketLabs && config.mailer.socketLabs.enabled) {
             console.log("   SocketLabs:");
+            console.log(`       From Email: ${config.mailer.socketLabs.fromEmail}`);
             console.log(`      Server ID: ${config.mailer.socketLabs.serverId}`);
             console.log(`      API Key: ${config.mailer.socketLabs.injectionApi}`);
         } else {
