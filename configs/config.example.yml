@@ -1,4 +1,12 @@
 sampleRate: 44100
+appMode: "LOCAL" # UDP or LOCAL; Note: UDP is very beta and not recommended for production use
+
+# UDP Client config to connect to ToneToneDetector
+udpClient:
+  address: 127.0.0.1
+  port: 11000
+  authToken: "secret"
+  nodeId: "12345"
 
 webUI:
   enabled: true

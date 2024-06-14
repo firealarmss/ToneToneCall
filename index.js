@@ -7,6 +7,7 @@ const ToneDetector = require('./modules/ToneDetector');
 const loadConfig = require('./modules/configLoader');
 const app = require('./modules/server/Server');
 const {asciiArt} = require("./modules/asciiArt");
+const UdpToneReceiver = require("./modules/UdpToneReceiver");
 
 const program = new Command();
 
@@ -26,34 +27,50 @@ asciiArt(config);
 
 console.log("                                     ToneToneCall Copyright 2024 Caleb, KO4UYJ\n");
 
-const toneDetector = new ToneDetector(config.toneDetection, config.recording, config.twilio, config.mailer.socketLabs);
+if (config.appMode === "LOCAL") {
+    const toneDetector = new ToneDetector(config.toneDetection, config.recording, config.twilio, config.mailer.socketLabs);
 
-const recording = recorder.record({
-    sampleRate: config.recording.sampleRate,
-    channels: config.recording.channels,
-    threshold: config.recording.threshold,
-    endOnSilence: config.recording.endOnSilence,
-    silence: config.recording.silence,
-    recorder: config.recording.recorder,
-    device: config.recording.device,
-    audioType: config.recording.audioType
-});
-
-recording.stream()
-    .on('data', (data) => {
-        toneDetector.processAudioData(data);
-    })
-    .on('error', (err) => {
-        console.error('recorder threw an error:', err);
-        toneDetector.resetState();
+    const recording = recorder.record({
+        sampleRate: config.recording.sampleRate,
+        channels: config.recording.channels,
+        threshold: config.recording.threshold,
+        endOnSilence: config.recording.endOnSilence,
+        silence: config.recording.silence,
+        recorder: config.recording.recorder,
+        device: config.recording.device,
+        audioType: config.recording.audioType
     });
 
-process.on('exit', () => {
-    recording.stop();
-    toneDetector.stop();
-});
+    recording.stream()
+        .on('data', (data) => {
+            toneDetector.processAudioData(data);
+        })
+        .on('error', (err) => {
+            console.error('recorder threw an error:', err);
+            toneDetector.resetState();
+        });
 
-console.log('Listening for audio...');
+    process.on('exit', () => {
+        recording.stop();
+        toneDetector.stop();
+    });
+
+    console.log('Listening for audio...');
+
+} else if (config.appMode === "UDP") {
+    const udpToneReceiver = new UdpToneReceiver(config.udpClient, config.twilio, config.mailer.socketLabs, config.toneDetection);
+    udpToneReceiver.start();
+
+    process.on('exit', () => {
+        udpToneReceiver.stop();
+        console.log('UDP Tone Receiver stopped.');
+    });
+
+    console.log('UDP Tone Receiver started...');
+} else {
+    console.error('Invalid app mode specified in config file. Valid options are "LOCAL" and "UDP"');
+    process.exit(0);
+}
 
 async function createDefaultAdminUser() {
     const userCount = await db.User.count();
